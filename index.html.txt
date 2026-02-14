@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8" />
+  <style>
+    :root{
+      --bg:#f4f6f8; --card:#fff; --text:#111827; --muted:#6b7280;
+      --primary:#0f172a; --line:#d1d5db;
+    }
+    body{
+      margin:0; padding:14px; background:var(--bg); color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans KR',Arial,sans-serif;
+      line-height:1.5;
+    }
+    .container{max-width:560px;margin:0 auto;}
+    .card{
+      border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px;
+      background:var(--card); box-shadow:0 1px 2px rgba(0,0,0,.05);
+    }
+    .title{font-size:20px;font-weight:800;margin-bottom:6px;}
+    .subtitle{font-size:13px;color:var(--muted);margin-bottom:8px;}
+    label{display:block;font-weight:700;margin:10px 0 6px;font-size:14px;}
+    input{
+      width:100%; padding:11px; font-size:16px; border-radius:10px;
+      border:1px solid #c7ccd1; box-sizing:border-box; background:#fff;
+    }
+    .btnRow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+    button{
+      width:100%; padding:12px; font-size:15px; border-radius:11px; border:none;
+      cursor:pointer; font-weight:800;
+    }
+    .btnPrimary{background:var(--primary);color:#fff;}
+    .btnGhost{background:#e5e7eb;color:#111827;}
+    .btnDisabled{background:#cbd5e1;color:#64748b;cursor:not-allowed;}
+
+    .statusBanner{border-radius:10px;padding:10px;font-weight:900;margin-bottom:8px;}
+    .sev-success{background:#dcfce7;color:#065f46;}
+    .sev-info{background:#dbeafe;color:#1d4ed8;}
+    .sev-danger{background:#fee2e2;color:#991b1b;}
+    .sev-error{background:#fee2e2;color:#991b1b;}
+
+    .row{margin:6px 0;}
+    .warn{margin:6px 0;}
+    .muted{color:var(--muted);font-size:13px;}
+
+    .koshaLogo{height:30px;width:auto;display:block;margin-bottom:8px;}
+    .footer{text-align:center;font-size:12px;color:var(--muted);margin-top:10px;padding:10px 0 6px;}
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <img class="koshaLogo" src="data:<?= logoMime ?>;base64,<?= logoBase64 ?>" alt="안전보건공단 로고">
+
+    <div class="card">
+      <div class="title">KOSHA 사다리 안전</div>
+      <div class="subtitle">계산 후, 라벨을 다운로드하여 현장에 부착하세요.</div>
+
+      <label for="siteNameInput">현장</label>
+      <input id="siteNameInput" type="text" placeholder="예: OO빌딩" autocomplete="organization" />
+
+      <label for="taskPlaceInput">세부장소</label>
+      <input id="taskPlaceInput" type="text" placeholder="예: 기계실, 주차장" />
+
+      <label for="workContent">작업내용</label>
+      <input id="workContent" type="text" placeholder="예: 전등교체, 배관교체" />
+
+      <label for="targetHeightM">작업 대상까지의 높이 (m) <span aria-hidden="true">*</span></label>
+      <input id="targetHeightM" type="number" step="0.1" min="0.1" placeholder="예: 2.4" inputmode="decimal" />
+
+      <div class="btnRow">
+        <button class="btnGhost" onclick="runPreview()">계산</button>
+        <button id="downloadBtn" class="btnDisabled" onclick="downloadLabel()" disabled>라벨 다운로드</button>
+      </div>
+
+      <div class="muted" style="margin-top:8px;">* 다운로드 버튼은 “계산” 후 활성화됩니다.</div>
+    </div>
+
+    <div id="result" class="card" style="display:none;" aria-live="polite"></div>
+    <div class="footer">운영: 안전보건공단 서울광역본부 서비스안전부</div>
+  </div>
+
+  <script>
+    const DEFAULT_SITE_NAME = "<?= siteName ?>";
+    const DEFAULT_TASK_PLACE = "<?= taskPlace ?>";
+
+    document.getElementById('siteNameInput').value = DEFAULT_SITE_NAME || '';
+    document.getElementById('taskPlaceInput').value = DEFAULT_TASK_PLACE || '';
+
+    const LOGO_DATA_URI = "data:<?= logoMime ?>;base64,<?= logoBase64 ?>";
+
+    // ✅ A6 라벨 프리셋
+    // - SCREEN_A6: 화면/메신저 공유용(가벼움)
+    // - PRINT_A6_300: 인쇄용 고해상도(파일 용량 큼)
+    const LABEL_PRESET = {
+      SCREEN_A6: { W: 820, H: 582, M: 22 },   // ✅ 용지(이미지) 줄임, A6 비율 유지
+      PRINT_A6_300: { W: 1748, H: 1240, M: 52 }
+    };
+
+    let LAST_PAYLOAD = null;
+    let LAST_RES = null;
+
+    function getPayload() {
+      return {
+        siteName: (document.getElementById('siteNameInput').value || '').trim(),
+        taskPlace: (document.getElementById('taskPlaceInput').value || '').trim(),
+        workContent: (document.getElementById('workContent').value || '').trim(),
+        targetHeightM: Number(document.getElementById('targetHeightM').value)
+      };
+    }
+
+    function validate(payload) {
+      if (!isFinite(payload.targetHeightM) || payload.targetHeightM <= 0) return '높이는 0보다 큰 숫자를 입력하세요.';
+      return '';
+    }
+
+    function setDownloadEnabled(enabled) {
+      const btn = document.getElementById('downloadBtn');
+      btn.disabled = !enabled;
+      btn.className = enabled ? 'btnPrimary' : 'btnDisabled';
+    }
+
+    function runPreview() {
+      const payload = getPayload();
+      LAST_PAYLOAD = payload;
+
+      setDownloadEnabled(false);
+      LAST_RES = null;
+
+      const errMsg = validate(payload);
+      if (errMsg) {
+        alert(errMsg);
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function(res){ render(res); })
+        .withFailureHandler(function(err){
+          alert('오류: ' + (err && err.message ? err.message : err));
+        })
+        .previewLadder(payload);
+    }
+
+    function render(res) {
+      const box = document.getElementById('result');
+      box.style.display = 'block';
+
+      if (!res || res.ok !== true) {
+        const msg = (res && res.decision && res.decision.reason) ? res.decision.reason : '알 수 없는 오류가 발생했습니다.';
+        box.innerHTML =
+          '<div class="statusBanner sev-error">입력 오류</div>' +
+          '<div class="row">' + escapeHtml(msg) + '</div>';
+        setDownloadEnabled(false);
+        LAST_RES = null;
+        return;
+      }
+
+      const sev = (res.ui && res.ui.severity) ? res.ui.severity : 'success';
+      const summary = (res.ui && res.ui.summary) ? res.ui.summary : '계산 완료';
+      const status = res.decision && res.decision.status ? res.decision.status : '';
+
+      const H = formatNum(res.derived && res.derived.workHeightM);
+      const ladder = formatNum(res.results && res.results.minAllowedLadderM);
+
+      const bannerText = (status === 'POSSIBLE')
+        ? summary + ' (필요 사다리 최소 높이 : ' + ladder + ' m)'
+        : summary;
+
+      const showPpe = (status === 'POSSIBLE');
+
+      const legalArr = Array.isArray(res.legal) ? res.legal : [];
+      const legalHtml = (legalArr.length > 0)
+        ? (
+          '<div class="row" style="margin-top:8px;"><b>안전 준수사항</b></div>' +
+          '<ul>' + legalArr.map(x => '<li class="warn">' + x + '</li>').join('') + '</ul>'
+        )
+        : '';
+
+      box.innerHTML =
+        '<div class="statusBanner sev-' + escapeHtml(sev) + '">' + escapeHtml(bannerText) + '</div>' +
+        '<div class="row"><b>작업 높이:</b> ' + H + ' m</div>' +
+        (showPpe ? '<div class="row"><b>필수 보호구:</b> ' + escapeHtml(res.ppe && res.ppe.message ? res.ppe.message : '안전모') + '</div>' : '') +
+        legalHtml +
+        '<div class="muted">라벨을 사용하려면, “다운로드”를 누르세요.</div>';
+
+      LAST_RES = res;
+      setDownloadEnabled(true);
+    }
+
+    // ✅ A6 비율 + 라운드 제거 + 폰트/여백 스케일 조정 반영본
+    async function downloadLabel() {
+      if (!LAST_PAYLOAD || !LAST_RES) {
+        alert('“계산”을 완료하세요.');
+        return;
+      }
+      const textScale = 1.3;
+      const label = buildLabelData(LAST_PAYLOAD, LAST_RES);
+
+      // ===== 프리셋 선택 =====
+      const { W, H, M } = LABEL_PRESET.SCREEN_A6;
+      // const { W, H, M } = LABEL_PRESET.PRINT_A6_300; // 인쇄용
+
+      // ===== 스케일(기존 920 기준) =====
+      const s = W / 920;
+
+      const LEFT = M + Math.round(16 * s);
+      const RIGHT = W - (M + Math.round(16 * s));
+
+      const canvas = document.createElement('canvas');
+      const dpr = window.devicePixelRatio || 1;
+
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      // 배경
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, W, H);
+
+      // 외곽선 (라운드 없음)
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = Math.max(3, Math.round(4 * s));
+      ctx.beginPath();
+      ctx.rect(M, M, W - M * 2, H - M * 2);
+      ctx.stroke();
+
+      // 제목 행 (라운드 없음)
+      const headY = M + Math.round(16 * s);
+      const headH = Math.round(78 * s);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.rect(LEFT, headY, RIGHT - LEFT, headH);
+      ctx.fill();
+
+      ctx.fillStyle = '#0f172a';
+      ctx.font = `800 ${Math.round(28 * s * textScale)}px "Noto Sans KR", Arial, sans-serif`;
+      ctx.fillText('사다리 작업구역 세부내용', LEFT + Math.round(18 * s), headY + Math.round(52 * s));
+
+      // 로고
+      const logoImg = await loadImage(LOGO_DATA_URI);
+      const logoH = Math.round(40 * s);
+      const logoW = Math.round(logoImg.width * (logoH / logoImg.height));
+      ctx.drawImage(
+        logoImg,
+        RIGHT - logoW - Math.round(16 * s),
+        headY + Math.round(18 * s),
+        logoW,
+        logoH
+      );
+
+      // 테이블 (라운드 없음)
+      const tableY = headY + headH + Math.round(16 * s);
+      const tableH = H - tableY - (M + Math.round(22 * s));
+
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = Math.max(2, Math.round(3 * s));
+      ctx.beginPath();
+      ctx.rect(LEFT, tableY, RIGHT - LEFT, tableH);
+      ctx.stroke();
+
+      const rows = [
+        { key: '현장명 / 세부장소', value: label.place },
+        { key: '작업내용', value: label.workName },
+        { key: '최소 사다리 높이', value: label.minTopText },
+        { key: '작업 높이', value: label.workHeightText }
+      ];
+
+      const keyW = Math.round(300 * s);
+      const rowH = Math.floor(tableH / rows.length);
+
+      for (let i = 0; i < rows.length; i++) {
+        const y = tableY + i * rowH;
+
+        // 가로 구분선
+        if (i > 0) {
+          ctx.beginPath();
+          ctx.moveTo(LEFT, y);
+          ctx.lineTo(RIGHT, y);
+          ctx.stroke();
+        }
+
+        // 세로 구분선
+        ctx.beginPath();
+        ctx.moveTo(LEFT + keyW, y);
+        ctx.lineTo(LEFT + keyW, y + rowH);
+        ctx.stroke();
+
+        // key 배경
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(LEFT + 1, y + 1, keyW - 2, rowH - 2);
+
+        // key 텍스트(축소)
+        ctx.fillStyle = '#0f172a';
+        ctx.font = `700 ${Math.round(20 * s * textScale)}px "Noto Sans KR", Arial, sans-serif`;
+        wrapText(
+          ctx,
+          rows[i].key,
+          LEFT + Math.round(14 * s),
+          y + Math.round(34 * s),
+          keyW - Math.round(24 * s),
+          Math.round(26 * s),
+          2
+        );
+
+        // value 텍스트(축소)
+        ctx.fillStyle = '#111827';
+        ctx.font = `700 ${Math.round(24 * s * textScale)}px "Noto Sans KR", Arial, sans-serif`;
+        wrapText(
+          ctx,
+          rows[i].value,
+          LEFT + keyW + Math.round(14 * s),
+          y + Math.round(38 * s),
+          (RIGHT - LEFT - keyW - Math.round(24 * s)),
+          Math.round(30 * s),
+          2
+        );
+      }
+
+      const filename = makeFileName(label);
+      canvas.toBlob(function(blob){
+        if (!blob) return alert('다운로드 생성에 실패했습니다.');
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }, 'image/png', 1.0);
+    }
+
+    function buildLabelData(payload, res) {
+      const status = res.decision && res.decision.status ? res.decision.status : '';
+
+      const place = (payload.siteName || '현장 미입력') + (payload.taskPlace ? ' / ' + payload.taskPlace : '');
+      const workName = payload.workContent || '작업명 미입력';
+
+      const ladderM = formatNum(res.results && res.results.minAllowedLadderM);
+      const workHeightM = formatNum(res.derived && res.derived.workHeightM);
+
+      let minTopText = '-';
+      let workHeightText = '-';
+
+      if (status === 'POSSIBLE') {
+        minTopText = ladderM + ' m';
+        workHeightText = workHeightM + ' m';
+      } else if (status === 'NO_LADDER') {
+        minTopText = '사다리 불필요';
+        workHeightText = workHeightM + ' m';
+      } else if (status === 'IMPOSSIBLE') {
+        minTopText = '사다리 작업 금지';
+        workHeightText = workHeightM + ' m';
+      }
+
+      return {
+        place,
+        workName,
+        minTopText,
+        workHeightText
+      };
+    }
+
+    function makeFileName(label) {
+      const base = (label.place || '라벨').replace(/[\\/:*?"<>|]/g, '_');
+      return base + '_라벨.png';
+    }
+
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+      });
+    }
+
+    // ⚠️ roundRect는 UI 카드/필요 시를 위해 남겨둠 (라벨에는 더 이상 사용하지 않음)
+    function roundRect(ctx, x, y, w, h, r) {
+      const rr = Math.min(r, w/2, h/2);
+      ctx.beginPath();
+      ctx.moveTo(x+rr, y);
+      ctx.arcTo(x+w, y, x+w, y+h, rr);
+      ctx.arcTo(x+w, y+h, x, y+h, rr);
+      ctx.arcTo(x, y+h, x, y, rr);
+      ctx.arcTo(x, y, x+w, y, rr);
+      ctx.closePath();
+    }
+
+    function drawPill(ctx, x, y, text, bg, fg) {
+      ctx.font = '700 22px "Noto Sans KR", Arial, sans-serif';
+      const tw = ctx.measureText(text).width;
+      const w = Math.ceil(tw + 32);
+      const h = 38;
+
+      ctx.fillStyle = bg;
+      roundRect(ctx, x, y, w, h, 18);
+      ctx.fill();
+
+      ctx.fillStyle = fg;
+      ctx.fillText(text, x + 16, y + 26);
+    }
+
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
+      const str = String(text || '').trim();
+      if (!str) return y;
+
+      const parts = str.includes(' ') ? str.split(' ') : [str];
+      let line = '';
+      let lines = 0;
+
+      const drawLine = (t) => {
+        ctx.fillText(t, x, y);
+        y += lineHeight;
+        lines++;
+      };
+
+      for (let i = 0; i < parts.length; i++) {
+        const word = parts[i];
+        const testLine = line ? (line + ' ' + word) : word;
+
+        if (ctx.measureText(testLine).width <= maxWidth) {
+          line = testLine;
+          continue;
+        }
+
+        if (line) {
+          if (maxLines && lines >= maxLines) return y;
+          drawLine(line);
+          line = '';
+        }
+
+        let chunk = '';
+        for (let j = 0; j < word.length; j++) {
+          const t = chunk + word[j];
+          if (ctx.measureText(t).width > maxWidth && chunk) {
+            if (maxLines && lines >= maxLines) return y;
+            drawLine(chunk);
+            chunk = word[j];
+          } else {
+            chunk = t;
+          }
+        }
+        line = chunk;
+      }
+
+      if (line) {
+        if (maxLines && lines >= maxLines) return y;
+        drawLine(line);
+      }
+
+      return y;
+    }
+
+    function formatNum(x) {
+      if (typeof x !== 'number' || !isFinite(x)) return '-';
+      return (Math.round(x * 100) / 100).toString();
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'",'&#039;');
+    }
+  </script>
+</body>
+</html>

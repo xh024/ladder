@@ -1,0 +1,115 @@
+/***************
+ * CONSTANTS
+ ***************/
+const R_TOP_M = 0.6;        // 최상부 및 하단(2단) 제외 구간
+const OFFSET_4FT_M = 1.2;   // 작업대상까지 높이에서 4ft(1.2m) 제외
+const BAN_WORK_H_M = 3.5;   // 사다리 작업 금지 기준(작업높이)
+const HARNESS_H_M = 2.0;    // 안전대 착용 기준(작업높이)
+
+const LOGO_FILE_ID = '1t_zA_3qWoyMiW-Bu8iFAxKdJbQb_Dyl7';
+
+/***************
+ * WEB APP ENTRY
+ ***************/
+function doGet(e) {
+  const params = (e && e.parameter) ? e.parameter : {};
+  const t = HtmlService.createTemplateFromFile('index');
+
+  const blob = DriveApp.getFileById(LOGO_FILE_ID).getBlob();
+  t.logoMime = blob.getContentType();
+  t.logoBase64 = Utilities.base64Encode(blob.getBytes());
+
+  t.siteName = params.siteName || '';
+  t.taskPlace = params.taskPlace || '';
+
+  return t.evaluate()
+    .setTitle('작업 높이별 적정 사다리 판정')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+/***************
+ * PREVIEW ONLY (NO SAVE)
+ ***************/
+function previewLadder(input) {
+  return evaluateLadderInternal_(input);
+}
+
+/***************
+ * CORE EVAL
+ ***************/
+function evaluateLadderInternal_(input) {
+  const T = Number(input && input.targetHeightM);
+
+  const res = {
+    ok: true,
+    decision: { allowed: true, status: 'POSSIBLE', reason: '' },
+    inputs: { targetHeightM: T },
+    derived: { workHeightM: null, minTopM: null },
+    results: { minAllowedLadderM: null },
+    ppe: { helmet: true, harness: false, message: '안전모 착용' },
+    legal: [
+      '최상부 및 그 하단부(2단) 사용 금지',
+      '사다리 미끄럼 방지 및 수평 확보',
+      '3점 지지 원칙 준수'
+    ],
+    ui: { severity: 'success', summary: '작업 가능' }
+  };
+
+  if (!isFinite(T) || T <= 0) {
+    res.ok = false;
+    res.decision = { allowed: false, status: 'ERROR', reason: '작업 대상까지의 높이는 0보다 큰 숫자여야 합니다.' };
+    res.ui = { severity: 'error', summary: '입력값 오류' };
+    return res;
+  }
+
+  // 최소 사다리 최상부 = 목표높이 - 1.2m
+  const minTop = round2_(T - OFFSET_4FT_M);
+  // 작업높이(H) = 최소사다리최상부 - 0.6m
+  const H = round2_(minTop - R_TOP_M);
+
+  res.derived.minTopM = minTop;
+  res.derived.workHeightM = H;
+
+  // 기본 표시값
+  res.results.minAllowedLadderM = minTop;
+
+  // 사다리 불필요
+  if (H < 0) {
+    res.decision = { allowed: true, status: 'NO_LADDER', reason: '작업 높이가 0m 미만으로 산출되어 사다리가 필요하지 않습니다.' };
+    res.ui = { severity: 'info', summary: '사다리 불필요' };
+    res.results.minAllowedLadderM = '';
+    res.legal = [];
+    res.ppe.message = '안전모 필수착용';
+    return res;
+  }
+
+  // 사다리 작업 금지
+  if (H >= BAN_WORK_H_M) {
+    res.decision = {
+      allowed: false,
+      status: 'IMPOSSIBLE',
+      reason: `작업 높이 ${BAN_WORK_H_M}m 이상은 사다리 작업 금지입니다. 전문업체 혹은 고소작업대·비계 이용 바랍니다.`
+    };
+    res.ui = { severity: 'danger', summary: '사다리 작업 금지 : 전문업체 혹은 비계·고소작업대 이용' };
+    res.results.minAllowedLadderM = '';
+    res.ppe.message = '';
+    res.legal = [
+      '<b>비계</b>: 작업발판·안전난간·아웃트리거 등 안전설비 설치 후 작업',
+      '<b>고소작업대</b>: 보호구 착용철저, 과상승방지장치 작동여부 확인, 정격하중 초과금지',
+      '작업구역 출입통제 및 낙하물·추락 위험구역 관리'
+    ];
+    return res;
+  }
+
+  // 2m 이상 안전대
+  if (H >= HARNESS_H_M) {
+    res.ppe.harness = true;
+    res.ppe.message = '안전모 / 안전대 필수착용';
+  }
+
+  return res;
+}
+
+function round2_(x) {
+  return Number((Math.round(x * 100) / 100).toFixed(2));
+}
