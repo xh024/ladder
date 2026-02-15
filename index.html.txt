@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
   <base target="_top">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
+      --font: Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+          "Noto Sans KR", "Malgun Gothic", Arial, sans-serif;
       --bg:#f2f4f7;
       --card:#ffffff;
       --text:#111827;
@@ -29,7 +32,7 @@
       padding:16px;
       background:var(--bg);
       color:var(--text);
-      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans KR',Arial,sans-serif;
+      font-family: var(--font);
     }
 
     .container{max-width:520px;margin:0 auto;}
@@ -44,7 +47,6 @@
     }
 
     .top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;}
-    .logo{height:24px;width:auto;flex-shrink:0;}
     .title{font-size:20px;font-weight:800;margin:0;}
 
     .field{margin-top:10px;}
@@ -74,8 +76,11 @@
       border:none;
       border-radius:12px;
       padding:12px;
+      min-height:44px;
       font-size:15px;
       font-weight:800;
+      line-height:1;
+      white-space:nowrap;
       cursor:pointer;
     }
 
@@ -97,19 +102,49 @@
 
     .metric{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px;}
     .metric:last-of-type{border-bottom:none;}
+    .valuePossible{color:#166534;}
+    .valueNoLadder{color:#1d4ed8;}
+    .valueImpossible{color:#b91c1c;}
     .muted{color:var(--muted);font-size:12px;margin-top:8px;}
     ul{margin:8px 0 0 18px;padding:0;}
     li{margin:4px 0;font-size:13px;}
 
     .footer{text-align:center;color:var(--muted);font-size:11px;margin-top:10px;}
+
+    /* 컨텐츠(카드) 바깥 상단 로고 영역 */
+    .brandBar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between; /* ✅ 양끝 */
+      margin: 4px 2px 10px;
+      width:100%;
+    }
+
+    .brandLogo{
+      height:35px;
+      width:auto;
+      opacity:.9;
+    }
+    .logo{
+      height:24px;
+      width:auto;
+      flex-shrink:0;
+      margin-top: 8px;
+      margin-right: 10px; /* ← 8~16px 정도로 취향 조절 */
+    }
+
   </style>
 </head>
 <body>
   <div class="container">
+    <div class="brandBar">
+    <img class="brandLogo" src="data:<?= outerLogoMime ?>;base64,<?= outerLogoBase64 ?>" alt="상단 로고">
+    <img class="logo" src="data:<?= logoMime ?>;base64,<?= logoBase64 ?>" alt="안전보건공단 로고">
+    </div>
+
     <div class="card">
       <div class="top">
         <h1 class="title">KOSHA 사다리 안전</h1>
-        <img class="logo" src="data:<?= logoMime ?>;base64,<?= logoBase64 ?>" alt="안전보건공단 로고">
       </div>
 
       <form id="mainForm" novalidate>
@@ -130,19 +165,19 @@
 
         <div class="field">
           <label for="targetHeightM">작업 대상 높이 (m) <span class="required">*</span></label>
-          <input id="targetHeightM" type="number" step="0.1" min="0.1" placeholder="예: 2.4" inputmode="decimal" required />
+          <input id="targetHeightM" type="number" step="0.1" min="0.1" placeholder="예: 2.4(바닥 ~ 작업대상까지)" inputmode="decimal" required />
           <div id="heightFieldError" class="error">높이는 0보다 큰 숫자여야 합니다.</div>
         </div>
 
         <div class="btnRow">
           <button id="calcBtn" class="btnSecondary" type="submit">계산</button>
-          <button id="downloadBtn" class="btnDisabled" type="button" onclick="downloadLabel()" disabled>다운로드</button>
+          <button id="downloadBtn" class="btnDisabled" type="button" onclick="downloadLabel()" disabled>라벨 다운로드</button>
         </div>
       </form>
     </div>
 
     <div id="result" class="card result" aria-live="polite"></div>
-    <div class="footer">운영: 안전보건공단 서울광역본부 서비스안전부</div>
+    <div class="footer">운영: 한국산업안전보건공단 서울광역본부 서비스안전부</div>
   </div>
 
   <script>
@@ -158,7 +193,7 @@
     let LAST_PAYLOAD = null;
     let LAST_RES = null;
     let IS_CALCULATING = false;
-
+    
     const $ = (id) => document.getElementById(id);
 
     $('siteNameInput').value = DEFAULT_SITE_NAME || '';
@@ -273,10 +308,17 @@
       const legalArr = Array.isArray(res.legal) ? res.legal : [];
       const legalHtml = legalArr.length ? ('<ul>' + legalArr.map(function(x){ return '<li>' + x + '</li>'; }).join('') + '</ul>') : '';
 
+      const ladderValueClass = (function(){
+        if (status === 'POSSIBLE') return 'valuePossible';
+        if (status === 'NO_LADDER') return 'valueNoLadder';
+        if (status === 'IMPOSSIBLE') return 'valueImpossible';
+        return '';
+      })();
+
       box.innerHTML =
         '<div class="status sev-' + escapeHtml(sev) + '">' + escapeHtml(summary) + '</div>' +
         '<div class="metric"><span>작업 높이</span><b>' + workHeight + ' m</b></div>' +
-        '<div class="metric"><span>최소 사다리 높이</span><b>' + escapeHtml(ladderText) + '</b></div>' +
+        '<div class="metric"><span>권장 사다리 최소높이</span><b class="' + ladderValueClass + '">' + escapeHtml(ladderText) + '</b></div>' +
         '<div class="metric"><span>필수 보호구</span><b>' + escapeHtml(ppeText) + '</b></div>' +
         legalHtml +
         (recommendation ? '<div class="muted">' + escapeHtml(recommendation) + '</div>' : '');
@@ -296,7 +338,7 @@
       const s = W / 920;
       const LEFT = M + Math.round(16 * s);
       const RIGHT = W - (M + Math.round(16 * s));
-      const textScale = 1.25;
+      const textScale = 1.5;
 
       const canvas = document.createElement('canvas');
       const dpr = window.devicePixelRatio || 1;
@@ -334,7 +376,7 @@
       const rows = [
         { key: '현장명 / 세부장소', value: label.place },
         { key: '작업내용', value: label.workName },
-        { key: '최소 사다리 높이', value: label.minTopText },
+        { key: '권장 사다리 최소높이', value: label.minTopText },
         { key: '작업 높이', value: label.workHeightText }
       ];
 
@@ -387,8 +429,8 @@
 
     function buildLabelData(payload, res) {
       const status = res.decision && res.decision.status ? res.decision.status : '';
-      const place = (payload.siteName || '현장 미입력') + (payload.taskPlace ? ' / ' + payload.taskPlace : '');
-      const workName = payload.workContent || '작업명 미입력';
+      const place = (payload.siteName || '현장명 미입력') + (payload.taskPlace ? ' / ' + payload.taskPlace : '');
+      const workName = payload.workContent || '작업내용 미입력';
       const ladderM = formatNum(res.results && res.results.minAllowedLadderM);
       const workHeightM = formatNum(res.derived && res.derived.workHeightM);
 
