@@ -410,21 +410,83 @@
         wrapText(ctx, rows[i].value, LEFT + keyW + Math.round(14 * s), y + Math.round(38 * s), (RIGHT - LEFT - keyW - Math.round(24 * s)), Math.round(30 * s), 2);
       }
 
-      const filename = makeFileName(label);
-      canvas.toBlob(function(blob){
-        if (!blob) {
-          alert('다운로드 생성에 실패했습니다.');
-          return;
+      
+
+    const filename = makeFileName(label);
+      const blob = await canvasToBlob(canvas);
+      if (!blob) {
+        alert('다운로드 생성에 실패했습니다.');
+        return;
+      }
+
+      await saveLabelBlob(blob, filename);
+    }
+
+    async function saveLabelBlob(blob, filename) {
+      const ua = (navigator.userAgent || '').toLowerCase();
+      const isNaverInApp = ua.includes('naver');
+
+      if (await tryNativeShare(blob, filename)) {
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+
+      if (isNaverInApp) {
+        const dataUrl = await blobToDataUrl(blob);
+        const opened = window.open(dataUrl, '_blank');
+        if (!opened) {
+          window.location.href = dataUrl;
         }
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-      }, 'image/png', 1.0);
+        alert('네이버 앱에서는 자동 다운로드가 제한될 수 있어 이미지를 새 탭으로 열었습니다.\n길게 눌러 이미지 저장을 진행해주세요.');
+      }
+    }
+
+    async function tryNativeShare(blob, filename) {
+      if (!navigator.share || typeof File === 'undefined') return false;
+      if (!isMobileBrowser()) return false;
+
+      try {
+        const file = new File([blob], filename, { type: 'image/png' });
+        if (navigator.canShare && !navigator.canShare({ files: [file] })) {
+          return false;
+        }
+        await navigator.share({ files: [file], title: filename });
+        return true;
+      } catch (err) {
+        if (err && err.name === 'AbortError') {
+          // 공유 시트를 닫은 경우(사용자 취소)엔 다운로드로 이중 진행하지 않음
+          return true;
+        }
+        return false;
+      }
+    }
+
+    function isMobileBrowser() {
+      const ua = (navigator.userAgent || '').toLowerCase();
+      return /android|iphone|ipad|ipod|mobile/.test(ua);
+    }
+
+    function canvasToBlob(canvas) {
+      return new Promise(function(resolve){
+        canvas.toBlob(function(blob){ resolve(blob); }, 'image/png', 1.0);
+      });
+    }
+
+    function blobToDataUrl(blob) {
+      return new Promise(function(resolve, reject){
+        const reader = new FileReader();
+        reader.onloadend = function(){ resolve(reader.result); };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
     }
 
     function buildLabelData(payload, res) {
