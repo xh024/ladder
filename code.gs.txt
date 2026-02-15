@@ -7,6 +7,8 @@ const BAN_WORK_H_M = 3.5;   // 사다리 작업 금지 기준(작업높이)
 const HARNESS_H_M = 2.0;    // 안전대 착용 기준(작업높이)
 
 const LOGO_FILE_ID = '1t_zA_3qWoyMiW-Bu8iFAxKdJbQb_Dyl7';
+// 1x1 transparent png (Drive 접근 실패 시 웹앱 중단 방지용)
+const FALLBACK_LOGO_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO3Z8ZkAAAAASUVORK5CYII=';
 
 /***************
  * WEB APP ENTRY
@@ -15,9 +17,9 @@ function doGet(e) {
   const params = (e && e.parameter) ? e.parameter : {};
   const t = HtmlService.createTemplateFromFile('index');
 
-  const blob = DriveApp.getFileById(LOGO_FILE_ID).getBlob();
-  t.logoMime = blob.getContentType();
-  t.logoBase64 = Utilities.base64Encode(blob.getBytes());
+  const logo = getLogoData_();
+  t.logoMime = logo.mime;
+  t.logoBase64 = logo.base64;
 
   t.siteName = params.siteName || '';
   t.taskPlace = params.taskPlace || '';
@@ -25,6 +27,23 @@ function doGet(e) {
   return t.evaluate()
     .setTitle('작업 높이별 적정 사다리 판정')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+
+function getLogoData_() {
+  try {
+    const blob = DriveApp.getFileById(LOGO_FILE_ID).getBlob();
+    return {
+      mime: blob.getContentType() || 'image/png',
+      base64: Utilities.base64Encode(blob.getBytes())
+    };
+  } catch (err) {
+    // 배포 유형/권한 문제로 DriveApp 접근 실패 시에도 웹앱은 계속 동작해야 함
+    return {
+      mime: 'image/png',
+      base64: FALLBACK_LOGO_BASE64
+    };
+  }
 }
 
 /***************
@@ -38,12 +57,18 @@ function previewLadder(input) {
  * CORE EVAL
  ***************/
 function evaluateLadderInternal_(input) {
-  const T = Number(input && input.targetHeightM);
+  const cleaned = sanitizeInput_(input);
+  const T = cleaned.targetHeightM;
 
   const res = {
     ok: true,
     decision: { allowed: true, status: 'POSSIBLE', reason: '' },
-    inputs: { targetHeightM: T },
+    inputs: {
+      siteName: cleaned.siteName,
+      taskPlace: cleaned.taskPlace,
+      workContent: cleaned.workContent,
+      targetHeightM: T
+    },
     derived: { workHeightM: null, minTopM: null },
     results: { minAllowedLadderM: null },
     ppe: { helmet: true, harness: false, message: '안전모 착용' },
@@ -52,13 +77,21 @@ function evaluateLadderInternal_(input) {
       '사다리 미끄럼 방지 및 수평 확보',
       '3점 지지 원칙 준수'
     ],
-    ui: { severity: 'success', summary: '작업 가능' }
+    ui: {
+      severity: 'success',
+      summary: '작업 가능',
+      recommendation: '필수 보호구 및 3점 지지 원칙을 준수해 작업하세요.'
+    }
   };
 
   if (!isFinite(T) || T <= 0) {
     res.ok = false;
     res.decision = { allowed: false, status: 'ERROR', reason: '작업 대상까지의 높이는 0보다 큰 숫자여야 합니다.' };
-    res.ui = { severity: 'error', summary: '입력값 오류' };
+    res.ui = {
+      severity: 'error',
+      summary: '입력값 오류',
+      recommendation: '작업 대상 높이를 다시 확인하고 숫자로 입력하세요.'
+    };
     return res;
   }
 
@@ -76,9 +109,16 @@ function evaluateLadderInternal_(input) {
   // 사다리 불필요
   if (H < 0) {
     res.decision = { allowed: true, status: 'NO_LADDER', reason: '작업 높이가 0m 미만으로 산출되어 사다리가 필요하지 않습니다.' };
-    res.ui = { severity: 'info', summary: '사다리 불필요' };
+    res.ui = {
+      severity: 'info',
+      summary: '사다리 불필요',
+      recommendation: '지상 작업으로 전환하고 주변 정리정돈 상태를 점검하세요.'
+    };
     res.results.minAllowedLadderM = '';
-    res.legal = [];
+    res.legal = [
+      '작업구역 바닥 상태(미끄럼·장애물)를 점검 후 작업 진행',
+      '장비 이동 동선과 보행자 동선을 분리'
+    ];
     res.ppe.message = '안전모 필수착용';
     return res;
   }
@@ -90,7 +130,11 @@ function evaluateLadderInternal_(input) {
       status: 'IMPOSSIBLE',
       reason: `작업 높이 ${BAN_WORK_H_M}m 이상은 사다리 작업 금지입니다. 전문업체 혹은 고소작업대·비계 이용 바랍니다.`
     };
-    res.ui = { severity: 'danger', summary: '사다리 작업 금지 : 전문업체 혹은 비계·고소작업대 이용' };
+    res.ui = {
+      severity: 'danger',
+      summary: '사다리 작업 금지 : 전문업체 혹은 비계·고소작업대 이용',
+      recommendation: '즉시 작업계획을 변경하고 적정 장비를 확보하세요.'
+    };
     res.results.minAllowedLadderM = '';
     res.ppe.message = '';
     res.legal = [
@@ -105,9 +149,21 @@ function evaluateLadderInternal_(input) {
   if (H >= HARNESS_H_M) {
     res.ppe.harness = true;
     res.ppe.message = '안전모 / 안전대 필수착용';
+    res.ui.recommendation = '안전대 체결 지점을 확인하고 2인 1조 작업을 권장합니다.';
   }
 
   return res;
+}
+
+function sanitizeInput_(input) {
+  const raw = input || {};
+
+  return {
+    siteName: String(raw.siteName || '').trim().slice(0, 80),
+    taskPlace: String(raw.taskPlace || '').trim().slice(0, 80),
+    workContent: String(raw.workContent || '').trim().slice(0, 120),
+    targetHeightM: Number(raw.targetHeightM)
+  };
 }
 
 function round2_(x) {
