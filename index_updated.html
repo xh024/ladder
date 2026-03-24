@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <base target="_top">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --font: Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", Arial, sans-serif;
+      --bg:#f9fafb;
+      --surface:#ffffff;
+      --surface-alt:#f2f4f6;
+      --text:#191f28;
+      --sub:#4e5968;
+      --tertiary:#8b95a1;
+      --line:#e5e8eb;
+      --primary:#3182f6;
+      --primary-pressed:#1b64da;
+      --primary-soft:#e8f3ff;
+      --danger:#f04452;
+      --danger-soft:#fff1f3;
+      --success:#00a86b;
+      --success-soft:#edf8f3;
+      --info:#3182f6;
+      --info-soft:#eef6ff;
+      --shadow:0 8px 24px rgba(15, 23, 42, .06);
+      --radius-xl:24px;
+      --radius-lg:20px;
+      --radius-md:16px;
+      --radius-sm:12px;
+    }
+
+    *{box-sizing:border-box;}
+    html,body{height:100%;}
+    body{
+      margin:0;
+      background:linear-gradient(180deg,#f8fbff 0%, #f9fafb 180px, #f9fafb 100%);
+      color:var(--text);
+      font-family:var(--font);
+      -webkit-font-smoothing:antialiased;
+      word-break:keep-all;
+    }
+
+    .container{
+      max-width:560px;
+      margin:0 auto;
+      padding:20px 16px 40px;
+    }
+
+    .brandBar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:14px;
+    }
+    .brandLogo{height:34px;width:auto;opacity:.95;}
+    .logo{height:26px;width:auto;opacity:.92;}
+
+    .introCard{
+      padding:28px 24px;
+      border-radius:28px;
+      background:#ffffff;
+      box-shadow:var(--shadow);
+      border:1px solid rgba(229,232,235,.9);
+      margin-bottom:14px;
+    }
+    .eyebrow{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:8px 12px;
+      border-radius:999px;
+      background:var(--primary-soft);
+      color:var(--primary);
+      font-size:13px;
+      font-weight:700;
+      margin-bottom:14px;
+    }
+    .introCard h1{
+      margin:0;
+      font-size:30px;
+      line-height:1.25;
+      letter-spacing:-0.03em;
+    }
+    .introCard p{
+      margin:10px 0 0;
+      color:var(--sub);
+      font-size:15px;
+      line-height:1.55;
+    }
+    .introFigure{
+      margin-top:14px;
+      border:1px solid #e6eefb;
+      border-radius:20px;
+      overflow:hidden;
+      background:#fff;
+    }
+    .introFigure img{
+      width:100%;
+      display:block;
+      object-fit:contain;
+    }
+
+    .card{
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:var(--radius-xl);
+      box-shadow:var(--shadow);
+      padding:20px;
+    }
+
+    .sectionTitle{
+      margin:0 0 4px;
+      font-size:20px;
+      font-weight:800;
+      letter-spacing:-0.02em;
+    }
+    .sectionDesc{
+      margin:0 0 18px;
+      color:var(--sub);
+      font-size:14px;
+      line-height:1.5;
+    }
+
+    .field{margin-top:14px;}
+    .labelRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:8px;
+    }
+    label{
+      font-size:14px;
+      color:var(--sub);
+      font-weight:700;
+      letter-spacing:-0.01em;
+    }
+    .required{color:var(--danger);}
+    .helper{font-size:12px;color:var(--tertiary);}
+
+    .inputWrap{
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:var(--surface-alt);
+      transition:.2s ease;
+      overflow:hidden;
+    }
+    .inputWrap:focus-within{
+      border-color:rgba(49,130,246,.55);
+      box-shadow:0 0 0 4px rgba(49,130,246,.12);
+      background:#fff;
+    }
+    input{
+      width:100%;
+      border:0;
+      outline:none;
+      background:transparent;
+      color:var(--text);
+      padding:16px 18px;
+      font-size:17px;
+      font-family:var(--font);
+    }
+    input::placeholder{color:#b0b8c1;}
+
+    .hintBox{
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+      margin-top:16px;
+      padding:14px 16px;
+      border-radius:18px;
+      background:#f7f8fa;
+      color:var(--sub);
+      font-size:13px;
+      line-height:1.55;
+    }
+    .hintDot{
+      width:22px;height:22px;flex:0 0 22px;
+      border-radius:50%;
+      display:inline-flex;align-items:center;justify-content:center;
+      background:#e8f3ff;color:var(--primary);font-weight:800;font-size:12px;
+    }
+
+    .error{
+      display:none;
+      margin-top:8px;
+      color:var(--danger);
+      font-size:13px;
+      font-weight:700;
+    }
+
+    .btnRow{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:20px;
+    }
+    .btnRowSingle{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:10px;
+      margin-top:20px;
+    }
+    button{
+      border:0;
+      min-height:54px;
+      padding:0 18px;
+      border-radius:18px;
+      font-size:16px;
+      font-weight:800;
+      font-family:var(--font);
+      cursor:pointer;
+      transition:.18s ease;
+      letter-spacing:-0.01em;
+    }
+    .btnPrimary{
+      background:var(--primary);
+      color:#fff;
+    }
+    .btnPrimary:hover{background:var(--primary-pressed);}
+    .btnSecondary{
+      background:#f2f4f6;
+      color:var(--text);
+    }
+    .btnSecondary:hover{background:#e9ecef;}
+    .btnDisabled{background:#dce2e8;color:#8b95a1;cursor:not-allowed;}
+
+    .footer{
+      text-align:center;
+      color:var(--tertiary);
+      font-size:12px;
+      margin-top:14px;
+      line-height:1.5;
+    }
+
+    .pageSection{display:none;}
+    .pageSection.active{display:block;animation:fadeIn .22s ease;}
+    @keyframes fadeIn{
+      from{opacity:.55;transform:translateY(8px);}
+      to{opacity:1;transform:translateY(0);}
+    }
+    .sheetHeader{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:16px;
+      padding:2px 0 10px;
+    }
+    .sheetTitleWrap h2{
+      margin:0;
+      font-size:24px;
+      line-height:1.3;
+      letter-spacing:-0.03em;
+    }
+    .sheetSub{
+      margin-top:6px;
+      color:var(--sub);
+      font-size:14px;
+    }
+    .sheetClose{
+      width:40px;height:40px;border-radius:50%;padding:0;
+      background:#f2f4f6;color:#4e5968;font-size:22px;font-weight:500;
+      flex:0 0 40px;
+    }
+    .sheetBody{
+      padding:4px 0 0;
+    }
+
+    .statusBadge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 14px;
+      border-radius:999px;
+      font-size:14px;
+      font-weight:800;
+      margin-bottom:14px;
+    }
+    .sev-success{background:var(--success-soft);color:var(--success);}
+    .sev-info{background:var(--info-soft);color:var(--info);}
+    .sev-danger,.sev-error{background:var(--danger-soft);color:var(--danger);}
+
+    .summaryCard{
+      padding:16px;
+      border-radius:22px;
+      background:#f8fafc;
+      border:1px solid #eef1f4;
+      margin-bottom:14px;
+    }
+    .metrics{display:grid;gap:10px;}
+    .metric{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      padding:15px 16px;
+      border-radius:18px;
+      background:#fff;
+      border:1px solid #eef1f4;
+    }
+    .metricLabel{color:var(--sub);font-size:14px;font-weight:700;}
+    .metricValue{font-size:18px;font-weight:800;letter-spacing:-0.02em;text-align:right;}
+    .valuePossible{color:var(--success);}
+    .valueNoLadder{color:var(--info);}
+    .valueImpossible{color:var(--danger);}
+
+    .diagramWrap{
+      margin:14px 0 16px;
+      width:100%;
+      aspect-ratio:16 / 10;
+      min-height:210px;
+      border:1px solid #e6eefb;
+      border-radius:22px;
+      background:linear-gradient(180deg,#f5f9ff 0%, #fbfdff 100%);
+      overflow:hidden;
+    }
+    .diagramImage{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      display:block;
+    }
+    .diagramCaption{margin-top:-4px;color:var(--tertiary);font-size:13px;line-height:1.5;}
+
+    .listCard{
+      padding:16px;
+      border-radius:22px;
+      background:#fff;
+      border:1px solid #eef1f4;
+      margin-top:12px;
+    }
+    .listTitle{
+      margin:0 0 10px;
+      font-size:15px;
+      font-weight:800;
+      color:var(--text);
+    }
+    ul{margin:0;padding:0;list-style:none;}
+    li{
+      position:relative;
+      padding-left:20px;
+      color:var(--sub);
+      font-size:14px;
+      line-height:1.6;
+      margin-top:8px;
+    }
+    li:first-child{margin-top:0;}
+    li::before{
+      content:"";
+      position:absolute;
+      left:0;top:9px;
+      width:8px;height:8px;border-radius:50%;
+      background:#c8d1db;
+    }
+
+    .recommendation{
+      margin-top:14px;
+      padding:14px 16px;
+      border-radius:18px;
+      background:#f7f8fa;
+      color:var(--sub);
+      font-size:14px;
+      line-height:1.6;
+    }
+
+    .sheetFooter{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      padding-top:16px;
+    }
+
+    @media (max-width:520px){
+      html,body{
+        height:auto;
+        min-height:100%;
+        overflow-x:hidden;
+        overflow-y:auto;
+      }
+      body{
+        min-height:100%;
+      }
+      .container{
+        max-width:none;
+        height:auto;
+        min-height:100dvh;
+        padding:calc(env(safe-area-inset-top) + 10px) 12px calc(env(safe-area-inset-bottom) + 10px);
+        display:block;
+      }
+      .brandBar{
+        margin-bottom:8px;
+      }
+      .pageSection{
+        min-height:auto;
+      }
+      .pageSection.active{
+        display:block;
+      }
+      .introCard{
+        padding:18px 16px;
+        margin-bottom:0;
+      }
+      .introCard h1{font-size:24px;}
+      .introCard p{font-size:14px; line-height:1.45;}
+      .introFigure{
+        margin-top:10px;
+        min-height:0;
+      }
+      .card{
+        padding:14px;
+      }
+      .sectionDesc{
+        margin:0 0 12px;
+      }
+      #mainForm{
+        display:flex;
+        flex-direction:column;
+        gap:8px;
+      }
+      .field{
+        margin-top:8px;
+      }
+      .hintBox{
+        margin-top:8px;
+        padding:10px 12px;
+      }
+      .btnRow,.btnRowSingle,.sheetFooter{
+        grid-template-columns:1fr;
+        margin-top:12px;
+      }
+      .metric{align-items:flex-start;}
+      .metricValue{font-size:17px;}
+      .summaryCard{
+        padding:12px;
+        margin-bottom:10px;
+      }
+      .listCard{
+        margin-top:8px;
+        padding:12px;
+      }
+      li{
+        margin-top:5px;
+        line-height:1.45;
+      }
+      .footer{
+        display:none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="brandBar">
+      <img class="brandLogo" src="data:<?= outerLogoMime ?>;base64,<?= outerLogoBase64 ?>" alt="상단 로고">
+      <img class="logo" src="data:<?= logoMime ?>;base64,<?= logoBase64 ?>" alt="안전보건공단 로고">
+    </div>
+
+    <section id="introPage" class="introCard pageSection active">
+      <div class="eyebrow">사다리 안전작업 가이드</div>
+      <h1>KOSHA 사다리 안전작업 계산기</h1>
+      <p>아래 사진을 먼저 확인한 뒤, 확인 버튼을 눌러 높이를 입력해 주세요.</p>
+      <div class="introFigure">
+        <img src="data:<?= diagramMime ?>;base64,<?= diagramBase64 ?>" alt="사다리 기준 도식">
+      </div>
+      <div class="btnRowSingle">
+        <button id="introConfirmBtn" class="btnPrimary" type="button">확인</button>
+      </div>
+    </section>
+
+    <section id="resultPage" class="card pageSection" aria-live="polite">
+      <div class="sheetHeader">
+        <div class="sheetTitleWrap">
+          <h2 id="resultTitle">계산 결과</h2>
+          <div id="resultSub" class="sheetSub">입력한 작업 정보를 기반으로 계산했습니다.</div>
+        </div>
+      </div>
+      <div id="pageResultBody" class="sheetBody"></div>
+    </section>
+
+    <section id="formPage" class="card pageSection">
+      <h2 class="sectionTitle">작업 정보 입력</h2>
+      <p class="sectionDesc">현장 정보를 입력한 뒤 계산 버튼을 누르면 결과 페이지로 이동합니다.</p>
+
+            <form id="mainForm" novalidate>
+        <div class="field">
+          <div class="labelRow">
+            <label for="targetHeightM">대상 높이 (m) <span class="required">*</span></label>
+            <span class="helper">바닥에서 작업점까지</span>
+          </div>
+          <div class="inputWrap">
+            <input id="targetHeightM" type="number" step="0.1" min="0.1" placeholder="예: 2.4" inputmode="decimal" required />
+          </div>
+          <div id="heightFieldError" class="error">높이는 0보다 큰 숫자여야 합니다.</div>
+        </div>
+
+        <div class="hintBox">
+          <span class="hintDot">i</span>
+          <div>작업 대상 높이를 기준으로 권장 최소 사다리 높이와 핵심 안전수칙을 안내합니다.</div>
+        </div>
+
+        <div class="btnRow">
+          <button id="calcBtn" class="btnPrimary" type="submit">계산하기</button>
+          <button id="resetBtn" class="btnSecondary" type="button">다시 입력</button>
+        </div>
+      </form>
+    </section>
+
+    <div class="footer">운영: 한국산업안전보건공단 서울광역본부 서비스안전팀</div>
+  </div>
+
+    <script>
+    let LAST_PAYLOAD = null;
+    let LAST_RES = null;
+    let IS_CALCULATING = false;
+
+    const $ = (id) => document.getElementById(id);
+
+    $('mainForm').addEventListener('submit', function(event) {
+      event.preventDefault();
+      runPreview();
+    });
+
+    $('introConfirmBtn').addEventListener('click', function() {
+      showFormPage(true);
+    });
+    $('resetBtn').addEventListener('click', resetForm);
+
+    ['targetHeightM'].forEach(function(id) {
+      $(id).addEventListener('input', hideFieldError);
+    });
+
+    function setPage(activeId) {
+      ['introPage', 'formPage', 'resultPage'].forEach(function(id) {
+        const el = $(id);
+        if (!el) return;
+        if (id === activeId) {
+          el.classList.add('active');
+        } else {
+          el.classList.remove('active');
+        }
+      });
+    }
+
+    function showResultPage() {
+      setPage('resultPage');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showFormPage(focusHeight) {
+      setPage('formPage');
+      if (focusHeight) {
+        $('targetHeightM').focus();
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function getPayload() {
+      return {
+        siteName: '',
+        taskPlace: '',
+        workContent: '',
+        targetHeightM: Number($('targetHeightM').value)
+      };
+    }
+
+    function validate(payload) {
+      if (!isFinite(payload.targetHeightM) || payload.targetHeightM <= 0) {
+        return '높이는 0보다 큰 숫자여야 합니다.';
+      }
+      return '';
+    }
+
+    function showFieldError(message) {
+      const box = $('heightFieldError');
+      box.textContent = message;
+      box.style.display = 'block';
+      $('targetHeightM').setAttribute('aria-invalid', 'true');
+    }
+
+    function hideFieldError() {
+      $('heightFieldError').style.display = 'none';
+      $('targetHeightM').removeAttribute('aria-invalid');
+    }
+
+    function setCalculating(working) {
+      IS_CALCULATING = working;
+      const btn = $('calcBtn');
+      btn.disabled = working;
+      btn.className = working ? 'btnDisabled' : 'btnPrimary';
+      btn.textContent = working ? '계산 중...' : '계산하기';
+    }
+
+    function resetForm() {
+      $('mainForm').reset();
+      hideFieldError();
+      LAST_PAYLOAD = null;
+      LAST_RES = null;
+      showFormPage(false);
+    }
+
+    function runPreview() {
+      if (IS_CALCULATING) return;
+
+      const payload = getPayload();
+      LAST_PAYLOAD = payload;
+      LAST_RES = null;
+
+      const error = validate(payload);
+      if (error) {
+        showFieldError(error);
+        return;
+      }
+
+      hideFieldError();
+      setCalculating(true);
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          setCalculating(false);
+          renderResult(res, payload);
+        })
+        .withFailureHandler(function(err) {
+          setCalculating(false);
+          const message = err && err.message ? err.message : String(err || '알 수 없는 오류');
+          renderResult({ ok: false, decision: { reason: message } }, payload);
+        })
+        .previewLadder(payload);
+    }
+
+    function renderResult(res, payload) {
+      const box = $('pageResultBody');
+      const sub = $('resultSub');
+      showResultPage();
+
+      if (!res || res.ok !== true) {
+        sub.textContent = '입력값 또는 통신 상태를 확인해 주세요.';
+        box.innerHTML = [
+          '<div class="statusBadge sev-error">입력 오류</div>',
+          '<div class="summaryCard">',
+          '<div class="recommendation">' + escapeHtml((res && res.decision && res.decision.reason) ? res.decision.reason : '오류가 발생했습니다.') + '</div>',
+          '<div class="btnRowSingle">',
+          '<button class="btnPrimary" type="button" onclick="showFormPage(true)">다시 계산</button>',
+          '</div>',
+          '</div>'
+        ].join('');
+        return;
+      }
+
+      const sev = (res.ui && res.ui.severity) ? res.ui.severity : 'success';
+      const summary = (res.ui && res.ui.summary) ? res.ui.summary : '계산 완료';
+      const status = res.decision && res.decision.status ? res.decision.status : '';
+      const recommendation = (res.ui && res.ui.recommendation) ? res.ui.recommendation : '';
+      const workHeight = formatNum(res.derived && res.derived.workHeightM);
+      const ladder = formatNum(res.results && res.results.minAllowedLadderM);
+      const ppeText = res.ppe && res.ppe.message ? res.ppe.message : '안전모 착용';
+      const targetText = formatNum(payload && payload.targetHeightM);
+      const ladderText = (status === 'POSSIBLE' && ladder !== '-') ? ladder + ' m' : (status === 'NO_LADDER' ? '불필요' : (status === 'IMPOSSIBLE' ? '작업 금지' : '-'));
+      const ladderValueClass = status === 'POSSIBLE' ? 'valuePossible' : (status === 'NO_LADDER' ? 'valueNoLadder' : (status === 'IMPOSSIBLE' ? 'valueImpossible' : ''));
+      const legalArr = Array.isArray(res.legal) ? res.legal : [];
+      sub.textContent = '대상높이 ' + targetText + ' m 기준 결과';
+
+      box.innerHTML = [
+        '<div class="statusBadge sev-' + escapeHtml(sev) + '">' + escapeHtml(summary) + '</div>',
+        '<div class="summaryCard">',
+          '<div class="metrics">',
+            metricHtml('대상 높이', targetText + ' m', ''),
+            metricHtml('작업 높이', workHeight + ' m', ''),
+            metricHtml('권장 최소 사다리', ladderText, ladderValueClass),
+            metricHtml('보호구', escapeHtml(ppeText), ''),
+          '</div>',
+        '</div>',
+        '<div class="listCard">',
+          '<h3 class="listTitle">준수사항</h3>',
+          legalArr.length ? ('<ul>' + legalArr.map(function(x){ return '<li>' + escapeHtml(x) + '</li>'; }).join('') + '</ul>') : '<div class="recommendation">준수사항 정보가 없습니다.</div>',
+        '</div>',
+        recommendation ? '<div class="recommendation">' + escapeHtml(recommendation) + '</div>' : '',
+        '<div class="btnRowSingle">',
+          '<button class="btnPrimary" type="button" onclick="showFormPage(true)">다시 계산</button>',
+        '</div>'
+      ].join('');
+
+      LAST_RES = res;
+    }
+
+    function metricHtml(label, value, valueClass) {
+      return '<div class="metric"><span class="metricLabel">' + escapeHtml(label) + '</span><strong class="metricValue ' + (valueClass || '') + '">' + value + '</strong></div>';
+    }
+
+    function formatNum(x) {
+      if (typeof x !== 'number' || !isFinite(x)) return '-';
+      return (Math.round(x * 100) / 100).toString();
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>
