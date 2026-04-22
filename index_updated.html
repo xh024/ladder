@@ -458,9 +458,9 @@
     </div>
 
     <section id="introPage" class="introCard pageSection active">
-      <div class="eyebrow">사다리 안전작업 가이드</div>
-      <h1>KOSHA 사다리 안전작업 계산기</h1>
-      <p>아래 사진을 먼저 확인한 뒤, 확인 버튼을 눌러 높이를 입력해 주세요.</p>
+      <div class="eyebrow">KOSHA</div>
+      <h1>사다리 안전작업 가이드</h1>
+      <p>사다리 최상부부터 작업대상의 높이차는 120cm 이내여야 합니다.</p>
       <div class="introFigure">
         <img src="data:<?= diagramMime ?>;base64,<?= diagramBase64 ?>" alt="사다리 기준 도식">
       </div>
@@ -473,21 +473,17 @@
       <div class="sheetHeader">
         <div class="sheetTitleWrap">
           <h2 id="resultTitle">계산 결과</h2>
-          <div id="resultSub" class="sheetSub">입력한 작업 정보를 기반으로 계산했습니다.</div>
         </div>
       </div>
       <div id="pageResultBody" class="sheetBody"></div>
     </section>
 
     <section id="formPage" class="card pageSection">
-      <h2 class="sectionTitle">작업 정보 입력</h2>
-      <p class="sectionDesc">현장 정보를 입력한 뒤 계산 버튼을 누르면 결과 페이지로 이동합니다.</p>
-
+      <h2 class="sectionTitle">사다리 안전작업 가이드</h2>
             <form id="mainForm" novalidate>
         <div class="field">
           <div class="labelRow">
-            <label for="targetHeightM">대상 높이 (m) <span class="required">*</span></label>
-            <span class="helper">바닥에서 작업점까지</span>
+            <label for="targetHeightM">바닥면 ~ 작업 대상까지 높이 (m) <span class="required">*</span></label>
           </div>
           <div class="inputWrap">
             <input id="targetHeightM" type="number" step="0.1" min="0.1" placeholder="예: 2.4" inputmode="decimal" required />
@@ -497,17 +493,17 @@
 
         <div class="hintBox">
           <span class="hintDot">i</span>
-          <div>작업 대상 높이를 기준으로 권장 최소 사다리 높이와 핵심 안전수칙을 안내합니다.</div>
+          <div>계산 시 사다리 최소 규격과 필수사항이 표시됩니다.</div>
         </div>
 
         <div class="btnRow">
-          <button id="calcBtn" class="btnPrimary" type="submit">계산하기</button>
-          <button id="resetBtn" class="btnSecondary" type="button">다시 입력</button>
+          <button id="calcBtn" class="btnPrimary" type="submit">계산</button>
+          <button id="resetBtn" class="btnSecondary" type="button">재입력</button>
         </div>
       </form>
     </section>
 
-    <div class="footer">운영: 한국산업안전보건공단 서울광역본부 서비스안전팀</div>
+    <div class="footer">운영: 한국산업안전보건공단 서울광역본부 서비스안전부</div>
   </div>
 
     <script>
@@ -641,7 +637,7 @@
           '<div class="summaryCard">',
           '<div class="recommendation">' + escapeHtml((res && res.decision && res.decision.reason) ? res.decision.reason : '오류가 발생했습니다.') + '</div>',
           '<div class="btnRowSingle">',
-          '<button class="btnPrimary" type="button" onclick="showFormPage(true)">다시 계산</button>',
+          '<button class="btnPrimary" type="button" onclick="showFormPage(true)">재입력</button>',
           '</div>',
           '</div>'
         ].join('');
@@ -659,25 +655,24 @@
       const ladderText = (status === 'POSSIBLE' && ladder !== '-') ? ladder + ' m' : (status === 'NO_LADDER' ? '불필요' : (status === 'IMPOSSIBLE' ? '작업 금지' : '-'));
       const ladderValueClass = status === 'POSSIBLE' ? 'valuePossible' : (status === 'NO_LADDER' ? 'valueNoLadder' : (status === 'IMPOSSIBLE' ? 'valueImpossible' : ''));
       const legalArr = Array.isArray(res.legal) ? res.legal : [];
-      sub.textContent = '대상높이 ' + targetText + ' m 기준 결과';
 
       box.innerHTML = [
         '<div class="statusBadge sev-' + escapeHtml(sev) + '">' + escapeHtml(summary) + '</div>',
         '<div class="summaryCard">',
           '<div class="metrics">',
-            metricHtml('대상 높이', targetText + ' m', ''),
-            metricHtml('작업 높이', workHeight + ' m', ''),
-            metricHtml('권장 최소 사다리', ladderText, ladderValueClass),
-            metricHtml('보호구', escapeHtml(ppeText), ''),
+            metricHtml('작업대상 높이', targetText + ' m', ''),
+            metricHtml('작업자 높이', workHeight + ' m', ''),
+            metricHtml('(권장) 사다리 최소 규격', ladderText, ladderValueClass),
+            metricHtml('필수 보호구', escapeHtml(ppeText), ''),
           '</div>',
         '</div>',
         '<div class="listCard">',
-          '<h3 class="listTitle">준수사항</h3>',
-          legalArr.length ? ('<ul>' + legalArr.map(function(x){ return '<li>' + escapeHtml(x) + '</li>'; }).join('') + '</ul>') : '<div class="recommendation">준수사항 정보가 없습니다.</div>',
+          '<h3 class="listTitle">필수사항</h3>',
+          legalArr.length ? ('<ul>' + legalArr.map(function(x){ return '<li>' + escapeHtml(x) + '</li>'; }).join('') + '</ul>') : '<div class="recommendation">정보가 없습니다.</div>',
         '</div>',
         recommendation ? '<div class="recommendation">' + escapeHtml(recommendation) + '</div>' : '',
         '<div class="btnRowSingle">',
-          '<button class="btnPrimary" type="button" onclick="showFormPage(true)">다시 계산</button>',
+          '<button class="btnPrimary" type="button" onclick="showFormPage(true)">재입력</button>',
         '</div>'
       ].join('');
 
