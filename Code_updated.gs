@@ -110,9 +110,9 @@ function evaluateLadderInternal_(input) {
     ppe: { helmet: true, harness: false, message: '안전모 착용' },
     legal: [
       '작업 전 사다리 변형 및 파손 여부 점검',
-      '최상부 발판 및 그 하단 2단 디딤대 사용 금지',
+      '최상부 발판 및 그 하단 발판 사용 금지',
       '최대허용하중 초과 금지',
-      '전도·미끄럼 위험 시 2인 1조 작업 실시',
+      '2인 1조 작업 실시',
       '3점 지지 준수'
     ],
     ui: {
